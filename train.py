@@ -8,6 +8,7 @@ from contrastive import contrastive
 import numpy as np
 from chainer import reporter
 
+
 def arg():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', default=-1, type=int)
@@ -16,6 +17,7 @@ def arg():
     parser.add_argument('--out', '-o', default='result', type=str)
 
     return parser.parse_args()
+
 
 class SiameseUpdater(training.StandardUpdater):
     def update_core(self):
@@ -76,10 +78,9 @@ def main():
 
     updater = SiameseUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-#    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
-        ['epoch', 'main/loss', 'validation/main/loss']))
+        ['epoch', 'elapsed_time', 'main/loss']))
     trainer.extend(extensions.ProgressBar())
 
     trainer.run()
