@@ -30,4 +30,4 @@ class SiameseNetwork(chainer.Chain):
         label = chainer.Variable(label)
         loss = contrastive(y0, y1, label)
         reporter.report({'loss': loss}, self)
-       return loss
+        return loss
