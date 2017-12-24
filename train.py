@@ -8,6 +8,8 @@ from contrastive import contrastive
 import numpy as np
 from chainer import reporter
 from siamese_network import SiameseNetwork
+import os
+import os.path
 
 
 def arg():
@@ -29,9 +31,20 @@ class SiameseUpdater(training.StandardUpdater):
         x0_batch, y0_batch = in_arrays
         x1_batch = x0_batch[::-1]
         y1_batch = y0_batch[::-1]
-        label = np.array(y0_batch == y1_batch, dtype=np.int32)
+        xp = optimizer.target.xp
+        label = xp.array(y0_batch == y1_batch, dtype=np.int32)
         optimizer.update(optimizer.target, x0_batch, x1_batch, label)
 
+
+def plot_testdata(model, data, dst='pict'):
+    @training.make_extension()
+    def plot_image(trainer):
+        if not os.path.exists(dst):
+            os.makedirs(dst)
+        xp = model.xp
+        N = len(data)
+        data = chainer.Variable(xp.array(data, dtype=xp.float32))
+    return plot_image
 
 def main():
     args = arg()
@@ -55,6 +68,7 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'elapsed_time', 'main/loss']))
     trainer.extend(extensions.ProgressBar())
+    trainer.extend(plot_testdata(model, test))
 
     trainer.run()
 
