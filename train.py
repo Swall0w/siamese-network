@@ -4,6 +4,9 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+from contrastive import contrastive
+import numpy as np
+from chainer import reporter
 
 def arg():
     parser = argparse.ArgumentParser()
@@ -13,6 +16,18 @@ def arg():
     parser.add_argument('--out', '-o', default='result', type=str)
 
     return parser.parse_args()
+
+class SiameseUpdater(training.StandardUpdater):
+    def update_core(self):
+        batch = self._iterators['main'].next()
+        in_arrays = self.converter(batch, self.device)
+        optimizer = self._optimizers['main']
+
+        x0_batch, y0_batch = in_arrays
+        x1_batch = x0_batch[::-1]
+        y1_batch = y0_batch[::-1]
+        label = np.array(y0_batch == y1_batch, dtype=np.int32)
+        optimizer.update(optimizer.target, x0_batch, x1_batch, label)
 
 
 class SiameseNetwork(chainer.Chain):
@@ -26,6 +41,7 @@ class SiameseNetwork(chainer.Chain):
             self.fc5 = L.Linear(None, 2)
 
     def forward_once(self, x_data):
+        x = chainer.Variable(x_data)
         h = F.max_pooling_2d(self.conv1(x), ksize=2, stride=2)
         h = F.max_pooling_2d(self.conv2(h), ksize=2, stride=2)
         h = F.relu(self.fc3(h))
@@ -37,7 +53,9 @@ class SiameseNetwork(chainer.Chain):
         y0 = self.forward_once(x0)
         y1 = self.forward_once(x1)
         label = chainer.Variable(label)
-        return contrastive(y0, y1, label)
+        loss = contrastive(y0, y1, label)
+        reporter.report({'loss': loss}, self)
+        return loss
 
 
 def main():
@@ -50,17 +68,15 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
 
-    train, test = chainer.datasets.get_mnist()
+    train, test = chainer.datasets.get_mnist(ndim=3)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batch)
     test_iter = chainer.iterators.SerialIterator(test, args.batch,
                                                  repeat=False, shuffle=False)
 
-    updater = training.updater.StandardUpdater(
-        train_iter, optimizer, device=args.gpu
-    )
+    updater = SiameseUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+#    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss']))
