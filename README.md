@@ -8,7 +8,7 @@ The difference between the original repo are...
 * Using Trainer with powerfull extensions
 
 ## Mnist Demo
-epoch 1
+### epoch 1
 ![epoch1](imgs/result_1.png)
-epoch 16
+### epoch 16
 ![epoch16](imgs/result_16.png)
