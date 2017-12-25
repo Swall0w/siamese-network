@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 def arg():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', default=-1, type=int)
-    parser.add_argument('--epoch', '-e', default=200, type=int)
+    parser.add_argument('--epoch', '-e', default=50, type=int)
     parser.add_argument('--batch', '-b', default=128, type=int)
     parser.add_argument('--out', '-o', default='result', type=str)
 
@@ -64,6 +64,8 @@ def plot_testdata(model, data, batch, dst='pict'):
             feat = result[np.where(label == i)]
             plt.plot(feat[:, 0], feat[:, 1], '.', c=c[i])
         plt.legend(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+        plt.xlim([-2,2])
+        plt.ylim([-2,2])
         plt.savefig('{}/result_{}.png'.format(dst, trainer.updater.epoch))
         plt.clf()
     return plot_image
